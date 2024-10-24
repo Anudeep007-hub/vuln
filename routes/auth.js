@@ -17,7 +17,6 @@ const checkNotLoggedIn = (req, res, next) => {
 };
 
 
-
 // Middleware to prevent caching of sensitive pages
 const preventBackButtonCache = (req, res, next) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -36,21 +35,20 @@ router.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        const rows = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
+        console.log(username, password)
+        // const rows = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
+
+        const query = `SELECT * FROM users WHERE username = '${username}' AND password = '${password}'`;
+        const rows = await pool.query(query); // This is now vulnerable
 
         if (rows.length > 0) {
             const user = rows[0];
-            // Compare the hashed password
-            const passwordMatch = password == user.password;
+            console.log(rows)
+            const passwordMatch = user.password == password;
 
             if (passwordMatch) {
                 req.session.userId = user.id;
                 req.session.role = user.role;
-
-                // Set cache control headers to prevent back button issues
-                res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-                res.set('Pragma', 'no-cache');
-                res.set('Expires', '0');
 
                 if (user.role === 'admin') {
                     res.redirect('/admin');
@@ -67,6 +65,7 @@ router.post('/login', async (req, res) => {
         res.status(500).send('Server error');
     }
 });
+
 
 // Logout
 router.get('/logout', (req, res) => {
